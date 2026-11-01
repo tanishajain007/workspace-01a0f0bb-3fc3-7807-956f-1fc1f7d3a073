@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f6f4">
+  <meta name="description" content="An elegant, offline chess game for two players. Standard rules, full-state undo, and no distractions.">
+  <title>NOIR — The chess room</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath fill=%27%23242424%27 d=%27M2 2h19v19H2z%27/%3E%3Cpath fill=%27white%27 stroke=%27%23242424%27 d=%27M12 12h19v19H12z%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="engine.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="icon-undo" viewBox="0 0 24 24"><path d="M9 5 4 10l5 5M4 10h10a6 6 0 0 1 0 12"/></symbol>
+      <symbol id="icon-flip" viewBox="0 0 24 24"><path d="M5 7h14l-4-4M19 17H5l4 4M19 7l-4 4M5 17l4-4"/></symbol>
+      <symbol id="icon-new" viewBox="0 0 24 24"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24"><path d="M12 6c-3-3-6-3-9-2v15c3-1 6-1 9 2 3-3 6-3 9-2V4c-3-1-6-1-9 2Zm0 0v15"/></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+      <symbol id="icon-hand" viewBox="0 0 24 24"><path d="m9 13-2-2c-2-2-4 0-2 2l5 7h7l4-8c1-2-2-3-3-1V9c0-2-3-2-3 0V7c0-2-3-2-3 0v5-8c0-2-3-2-3 0v9Z"/></symbol>
+    </defs>
+  </svg>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#main" aria-label="NOIR, the chess room — skip to the game">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+        <span class="brand-name">NOIR<span class="brand-subtitle">THE CHESS ROOM</span></span>
+      </a>
+      <div class="header-right">
+        <span class="local-label"><span class="two-player-icon" aria-hidden="true">◐</span> TWO PLAYERS. ONE BOARD.</span>
+        <button class="help-button" id="helpButton" type="button" aria-label="How to play"><svg class="icon"><use href="#icon-book"/></svg><span>How to play</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section class="intro" aria-labelledby="pageTitle">
+      <div><p class="eyebrow">THE ORIGINAL GAME OF STRATEGY</p><h1 id="pageTitle">Your next move.</h1><p class="intro-copy">A classic game. A worthy opponent. Just across the board.</p></div>
+      <div class="intro-aside"><span class="small-rule"></span><p>Leave the rush behind.<br><em>Let the game unfold.</em></p></div>
+    </section>
+
+    <div class="workspace">
+      <section class="board-panel" aria-label="Chessboard and players">
+        <div class="player-strip" id="topPlayer"></div>
+        <div class="board-frame">
+          <div class="rank-labels" id="rankLabels" aria-hidden="true"></div>
+          <div class="board" id="board" role="grid" aria-label="Chessboard, White at the bottom" aria-rowcount="8" aria-colcount="8" aria-describedby="boardInstructions"></div>
+          <span class="axis-corner" aria-hidden="true">◇</span>
+          <div class="file-labels" id="fileLabels" aria-hidden="true"></div>
+        </div>
+        <div class="player-strip" id="bottomPlayer"></div>
+        <div class="board-note"><svg class="icon"><use href="#icon-hand"/></svg><span id="boardHint">Choose a piece, then a destination.</span><span class="keyboard-hint"><kbd>↵</kbd> to select</span></div>
+        <p id="boardInstructions" class="sr-only">Select a piece, then a legal destination, or drag a piece. Use arrow keys to navigate, Enter or Space to select, and Escape to clear your selection. Only the player whose turn it is may move. Legal destinations are marked with dots or capture rings.</p>
+      </section>
+
+      <section class="position-card" aria-label="Current game status">
+        <div class="card-eyebrow"><span class="phase-label" id="phaseLabel"><span class="status-dot"></span> IN PROGRESS</span><span class="turn-number" id="turnNumber" aria-label="Move number 1">01</span></div>
+        <div class="position-title"><span id="turnSymbol" aria-hidden="true"></span><h2 id="positionHeading">White to move</h2></div>
+        <p class="status-copy" id="statusText">The board is set. Make the first move.</p>
+        <div class="position-detail"><span class="detail-label" id="detailLabel">LAST MOVE</span><span id="statusDetail">—</span></div>
+        <button class="claim-button" id="claimDraw" type="button" hidden>Claim a draw <svg class="icon"><use href="#icon-arrow"/></svg></button>
+      </section>
+
+      <section class="history-card" aria-labelledby="historyTitle">
+        <div class="history-header"><h2 id="historyTitle">The score sheet</h2><span class="history-count" id="moveCount" aria-label="No moves played">0</span></div>
+        <div class="history-scroll" id="historyScroll" tabindex="0" aria-label="Move history; scroll to review earlier moves">
+          <table class="move-table" aria-label="Move history in standard algebraic notation">
+            <thead><tr><th scope="col">№</th><th scope="col">WHITE</th><th scope="col">BLACK</th></tr></thead>
+            <tbody id="moveBody"></tbody>
+          </table>
+          <div class="history-empty" id="historyEmpty"><span id="emptyPiece" aria-hidden="true"></span><p>The opening is yours.</p><span>Every move tells a story.<br>Yours will be recorded here.</span></div>
+        </div>
+        <div class="score-footer"><span class="notation-label" id="notationLabel">STANDARD ALGEBRAIC NOTATION</span><span id="gameScore" class="game-score" aria-label="Game result"></span></div>
+      </section>
+
+      <section class="game-controls" aria-label="Game controls">
+        <div class="utility-controls">
+          <button class="secondary-button" id="undoMove" type="button" disabled title="Restore the full previous game state"><svg class="icon"><use href="#icon-undo"/></svg><span>Undo move</span></button>
+          <button class="secondary-button" id="flipBoard" type="button" aria-pressed="false" title="Change the view without changing the position"><svg class="icon"><use href="#icon-flip"/></svg><span>Flip board</span></button>
+        </div>
+        <button class="primary-button new-game-button" id="newGame" type="button"><svg class="icon"><use href="#icon-new"/></svg><span>New game</span><span class="button-end" aria-hidden="true">↗</span></button>
+        <p class="controls-note">No clocks. No distractions. Just chess.</p>
+      </section>
+    </div>
+
+    <footer class="page-footer"><span>A BOARD FOR TWO.</span><p>Click, tap, or drag. <em>Take your time.</em></p><span class="footer-square" aria-hidden="true">◆</span></footer>
+  </main>
+
+  <div class="sr-only" id="announcement" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div class="drag-ghost" id="dragGhost" aria-hidden="true" hidden></div>
+
+  <dialog class="game-dialog promotion-dialog" id="promotionDialog" aria-labelledby="promotionTitle" aria-describedby="promotionDescription">
+    <button class="dialog-close" id="promotionClose" type="button" aria-label="Cancel promotion"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <p class="eyebrow">A PAWN'S NEW CHAPTER</p><h2 id="promotionTitle">Choose your piece.</h2><p id="promotionDescription">Your pawn has reached the final rank. Promote it to one of these four pieces.</p>
+    <div class="promotion-options" id="promotionOptions"></div>
+    <p class="dialog-footnote">The move is not made until you choose. <kbd>Esc</kbd> cancels.</p>
+  </dialog>
+
+  <dialog class="game-dialog" id="newGameDialog" aria-labelledby="newGameTitle" aria-describedby="newGameDescription">
+    <button class="dialog-close" id="newGameClose" type="button" aria-label="Keep playing"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <p class="eyebrow">A FRESH START</p><h2 id="newGameTitle">Begin again?</h2><p id="newGameDescription">This game is still in progress. Starting a new one will clear the board, captures, and score sheet.</p>
+    <div class="dialog-actions"><button class="secondary-button" id="keepPlaying" type="button">Keep playing</button><button class="primary-button" id="confirmNewGame" type="button">New game</button></div>
+  </dialog>
+
+  <dialog class="game-dialog help-dialog" id="helpDialog" aria-labelledby="helpTitle">
+    <button class="dialog-close" id="helpClose" type="button" aria-label="Close instructions"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <p class="eyebrow">MAKE YOURSELF AT HOME</p><h2 id="helpTitle">Pick. Place. Play.</h2><p>A standard game of chess for two people sharing this device. White moves first.</p>
+    <ol class="help-list">
+      <li><span>01</span><div><h3>Find your next move</h3><p>Click or tap your piece, then a marked square. You can also drag and drop. Dots mark moves; rings mark captures. A dashed king outline and “!” mean check.</p></div></li>
+      <li><span>02</span><div><h3>At your fingertips</h3><p>Tab into the board. <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> navigate; <kbd>Enter</kbd> or <kbd>Space</kbd> select. <kbd>Home</kbd>/<kbd>End</kbd> reach the row edges; add <kbd>Ctrl</kbd> for the board edges. <kbd>Esc</kbd> cancels.</p></div></li>
+      <li><span>03</span><div><h3>The complete game</h3><p>Castling, en passant, and all four promotions are included. Illegal moves never change the position. Undo restores everything, including special-move rights and draw counters. Flip only changes your view.</p></div></li>
+      <li><span>04</span><div><h3>When the game is drawn</h3><p>Stalemate and insufficient material end the game automatically. Threefold repetition and fifty moves by each player without a pawn move or capture allow a draw claim. The claim button also supports a declared next move. Fivefold repetition and seventy-five such moves are automatic draws; checkmate takes precedence.</p></div></li>
+    </ol>
+    <button class="primary-button full-width" id="helpDone" type="button">Back to the board <svg class="icon"><use href="#icon-arrow"/></svg></button>
+  </dialog>
+
+  <dialog class="game-dialog claim-dialog" id="claimDialog" aria-labelledby="claimTitle" aria-describedby="claimDescription">
+    <button class="dialog-close" id="claimClose" type="button" aria-label="Cancel draw claim"><svg class="icon"><use href="#icon-close"/></svg></button>
+    <p class="eyebrow">AN HONOURABLE FINISH</p><h2 id="claimTitle">Claim a draw.</h2><p id="claimDescription"></p>
+    <button class="primary-button full-width" id="claimCurrent" type="button" hidden>Claim this position</button>
+    <div id="intendedClaimSection" hidden><h3 class="claim-section-title" id="claimMoveTitle">Or declare a move</h3><div class="claim-options" id="claimOptions"></div><p class="dialog-footnote">A declared move ends the game before it is played. The position and score sheet stay unchanged.</p></div>
+  </dialog>
+  <noscript><div class="noscript-message">This chess game needs JavaScript. Please enable it in your browser to play.</div></noscript>
+</body>
+</html>
